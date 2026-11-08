@@ -207,8 +207,9 @@ for pat, msg in ((r"(?i)(PASSWORD|SECRET|TOKEN|API_KEY):\s*\S",
                   "compose must not contain a literal secret"),
                  (r"(?i)user:\s*[\"']?root", "compose must not run as root")):
     chk(re.search(pat, comp_nc) is None, msg)
-chk("curl -s -o /dev/null" in comp_nc or "wget -q" in comp_nc or "CMD [" in comp_nc,
-    "the healthcheck must probe the service (curl/wget/CMD)")
+chk("curl -s -o /dev/null" in comp_nc or "wget -q" in comp_nc or "CMD [" in comp_nc
+    or "fsockopen" in comp_nc,
+    "the healthcheck must probe the service (curl/wget/CMD/php)")
 bad_dollars = re.findall(r"(?<!\$)\$\{?[A-Za-z_]", comp_nc)
 chk(not bad_dollars, f"unescaped '$' in compose (must be '$$'): {sorted(set(bad_dollars))}")
 bad_seq = re.search(r"^([ \t]*)#[^\n]*\n\1-[ \t]", comp, re.M)

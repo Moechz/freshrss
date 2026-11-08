@@ -2,7 +2,7 @@
 
 All notable user-visible changes to the FreshRSS TOS application package.
 
-## 1.30.4-1 — 2026-11-09
+## 1.30.4-2 — 2026-11-09
 
 ### Added
 - First release. FreshRSS (`freshrss/freshrss:1.30.4`, Docker Hub official image, unmodified)

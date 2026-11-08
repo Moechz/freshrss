@@ -15,6 +15,10 @@
 #           non-root user, no privileged mode, no network_mode: host, no
 #           cap_add, explicit TZ, a healthcheck on the only service, and
 #           x-app-meta as the last block.
+# Wrapper : the official entrypoint needs root (timezone symlink, sed on /etc, chown,
+#           Apache pid under /var/run). TOS forbids root containers, so this wrapper runs
+#           the unmodified FreshRSS app with a private, writable copy of the Apache config
+#           as uid 1000 on port 8080.
 # Escaping: docker compose interpolates ${VAR}/$VAR in compose files, so any
 #           '$' meant for the shell is written '$$'.
 #
@@ -30,20 +34,23 @@ services:
     container_name: freshrssdocker
     restart: unless-stopped
     user: "1000:1000"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        @@ENTRYPOINT_SH@@
     ports:
       - "8029:8080"
     environment:
       TZ: "Asia/Shanghai"
-      LISTEN: "8080"
     volumes:
       - /Volume1/DockerAppData/freshrssdocker/data:/var/www/FreshRSS/data
       - /Volume1/DockerAppData/freshrssdocker/extensions:/var/www/FreshRSS/extensions
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -o /dev/null http://127.0.0.1:8080/ || exit 1"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "php -r 'if (fsockopen(\"127.0.0.1\",8080)) exit(0); exit(1);'"]
+      interval: 15s
+      timeout: 5s
       retries: 3
-      start_period: 45s
+      start_period: 15s
 
 # TOS App Center web metadata (must be the last block of the file):
 # web.port is the published host port above, protocol is http.
