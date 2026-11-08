@@ -1,0 +1,101 @@
+{
+  "app_id": "freshrssdocker",
+  "title": "FreshRSS",
+  "image": "freshrss/freshrss:1.30.4",
+  "repo_name": "freshrss",
+  "github_repo": "freshrss",
+  "mode": "plain",
+  "container_port": 8080,
+  "host_port": 8029,
+  "category": [
+    "Utilities"
+  ],
+  "user": "1000:1000",
+  "volumes": [
+    {
+      "host": "/Volume1/DockerAppData/freshrssdocker/data",
+      "container": "/var/www/FreshRSS/data"
+    },
+    {
+      "host": "/Volume1/DockerAppData/freshrssdocker/extensions",
+      "container": "/var/www/FreshRSS/extensions"
+    }
+  ],
+  "env": {
+    "TZ": "Asia/Shanghai",
+    "LISTEN": "8080"
+  },
+  "healthcheck": [
+    "CMD-SHELL",
+    "curl -s -o /dev/null http://127.0.0.1:8080/ || exit 1"
+  ],
+  "healthcheck_interval": "30s",
+  "healthcheck_timeout": "10s",
+  "healthcheck_retries": 3,
+  "healthcheck_start_period": "45s",
+  "auth": "FreshRSS",
+  "upstream_url": "https://github.com/FreshRSS/FreshRSS",
+  "upstream_license": "AGPL-3.0",
+  "license": "AGPL-3.0",
+  "descript": "FreshRSS is a self-hosted RSS and Atom feed aggregator. Subscribe to feeds, organize them into categories, search and filter articles, and read them in a clean web UI or through the API and mobile clients. This package runs the official Docker Hub image as a non-root container; the database, users and extensions live in the application data folder.",
+  "release_note": "1. First release: FreshRSS 1.30.4 from Docker Hub, x86_64 + aarch64, non-root.",
+  "important": "Open the web UI and complete the first-run page to create the administrator account; there is no default password. Feed data and users live in DockerAppData/freshrssdocker/data, extensions in .../extensions. Automatic feed refresh is disabled in this non-root package; use the web UI refresh or an external scheduler. Needs DockerEngine; add a registry mirror if Docker Hub is unreachable. Back up data before uninstalling with data removal. Plain HTTP on the LAN.",
+  "translations": {
+    "zh-cn": {
+      "descript": "FreshRSS 是一个自托管的 RSS/Atom 订阅聚合器。订阅源、按分类整理、搜索过滤文章，并通过清爽的网页界面、API 或手机客户端阅读。本应用使用 Docker Hub 官方镜像并以非 root 用户运行；数据库、用户与扩展都保存在应用数据目录。",
+      "important": "打开网页完成首次安装页，创建管理员账号；没有默认密码。订阅数据与用户保存在 DockerAppData/freshrssdocker/data，扩展在 .../extensions。镜像每 20 分钟刷新一次订阅。需要 DockerEngine；无法访问 Docker Hub 时请先配置镜像加速。卸载删除数据前请备份 data。应用通过局域网 HTTP 访问。",
+      "release_note": "1. 首个版本：FreshRSS 1.30.4，来自 Docker Hub，x86_64 + aarch64 双包，非 root。"
+    },
+    "zh-hk": {
+      "descript": "FreshRSS 是一個自託管的 RSS/Atom 訂閱聚合器。訂閱源、按分類整理、搜尋過濾文章，並透過清爽的網頁介面、API 或手機客戶端閱讀。本應用使用 Docker Hub 官方鏡像並以非 root 使用者運行；資料庫、使用者與擴充都保存在應用資料目錄。",
+      "important": "開啟網頁完成首次安裝頁，建立管理員帳號；沒有預設密碼。訂閱資料與使用者保存在 DockerAppData/freshrssdocker/data，擴充在 .../extensions。鏡像每 20 分鐘刷新一次訂閱。需要 DockerEngine；無法存取 Docker Hub 時請先設定鏡像加速。解除安裝刪除資料前請備份 data。應用透過局域網 HTTP 存取。",
+      "release_note": "1. 首個版本：FreshRSS 1.30.4，來自 Docker Hub，x86_64 + aarch64 雙包，非 root。"
+    }
+  },
+  "data_notes": "`data` holds `config.php`, the SQLite database (or DB settings), users and feed caches; `extensions` holds installed FreshRSS extensions. Copying `data` and `extensions` is a complete backup.",
+  "design_notes": [
+    "**Non-root.** Runs as `1000:1000` with the mounted data/extensions folders writable.",
+    "**Two volumes, one port.** `/var/www/FreshRSS/data` + `/var/www/FreshRSS/extensions`; only port 80 is published.",
+    "**Health check** probes `/` on port 80.",
+    "**No root cron.** The images cron is disabled because the container is non-root; use the web UI refresh or an external scheduler.",
+    "**Fixed image tag**, Docker Hub only, no privileged mode, no host network, no Docker socket."
+  ],
+  "limitations": [
+    "There is no default account. The first-run page is open until you create the administrator; complete it immediately after installation.",
+    "SQLite is used by default. Very large feed collections may benefit from an external database, which requires editing the configuration.",
+    "Plain HTTP on the LAN; do not expose the published port to the internet without a TLS reverse proxy."
+  ],
+  "runtime_files": [
+    {
+      "path": "data/config.php",
+      "purpose": "database and application configuration",
+      "created": "first run",
+      "growth": "small",
+      "lifecycle": "never overwritten; back it up"
+    },
+    {
+      "path": "data/users",
+      "purpose": "user accounts and their feed subscriptions",
+      "created": "when the first user is created",
+      "growth": "grows with subscriptions and articles",
+      "lifecycle": "never overwritten; back it up"
+    },
+    {
+      "path": "extensions",
+      "purpose": "installed FreshRSS extensions",
+      "created": "when an extension is installed",
+      "growth": "grows with extensions",
+      "lifecycle": "managed by the user; back it up"
+    }
+  ],
+  "official": "https://github.com/FreshRSS/FreshRSS",
+  "help": "https://github.com/Moechz/freshrss/issues",
+  "platform": "x86_64",
+  "publisher": "Moechz",
+  "compose_project": "freshrssdocker",
+  "upstream_version": "1.30.4",
+  "release_tag_prefix": "v",
+  "version": "1.30.4-1",
+  "docker_socket": false,
+  "group_add": []
+}
