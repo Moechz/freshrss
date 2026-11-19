@@ -4,7 +4,7 @@
   "image": "freshrss/freshrss:1.30.4",
   "repo_name": "freshrss",
   "github_repo": "freshrss",
-  "version": "1.30.4-2",
+  "version": "1.30.4-3",
   "mode": "wrapper",
   "entrypoint_file": "specs/freshrss-entrypoint.sh",
   "wrapper_note": "the official entrypoint needs root (timezone symlink, sed on /etc, chown,\nApache pid under /var/run). TOS forbids root containers, so this wrapper runs\nthe unmodified FreshRSS app with a private, writable copy of the Apache config\nas uid 1000 on port 8080.\n",
@@ -40,7 +40,7 @@
   "upstream_license": "AGPL-3.0",
   "license": "AGPL-3.0",
   "descript": "FreshRSS is a self-hosted RSS and Atom feed aggregator. Subscribe to feeds, organize them into categories, search and filter articles, and read them in a clean web UI or through the API and mobile clients. This package runs the official Docker Hub image as a non-root container; the database, users and extensions live in the application data folder.",
-  "release_note": "1. First release: FreshRSS 1.30.4 from Docker Hub, x86_64 + aarch64, non-root.",
+  "release_note": "1.30.4-3: remediation for the App Center listing review — added a full privacy policy (retention, user rights, security measures, third-party endpoints, deletion channel) and linked it from the Help field; disclosed the outbound endpoints (feed servers, WebSub hubs, GitHub update checks); aligned the description with the delivered functionality and documented the repository layout. Upstream is still 1.30.4 (latest release); components inherited from the upstream image will be upgraded with the next upstream release.",
   "important": "Open the web UI and complete the first-run page to create the administrator account; there is no default password. Feed data and users live in DockerAppData/freshrssdocker/data, extensions in .../extensions. Automatic feed refresh is disabled in this non-root package; use the web UI refresh or an external scheduler. Needs DockerEngine; add a registry mirror if Docker Hub is unreachable. Back up data before uninstalling with data removal. Plain HTTP on the LAN.",
   "translations": {
     "zh-cn": {
@@ -84,7 +84,7 @@
     }
   ],
   "official": "https://github.com/FreshRSS/FreshRSS",
-  "help": "https://github.com/Moechz/freshrss/issues",
+  "help": "https://github.com/Moechz/freshrss/blob/main/PRIVACY.md",
   "platform": "x86_64",
   "publisher": "Moechz",
   "compose_project": "freshrssdocker",

@@ -102,3 +102,20 @@ Plain HTTP on the LAN; do not expose the published port to the internet without 
 ---
 
 Packaged for TOS 7 by Moechz. Upstream image used unmodified from Docker Hub.
+
+## Repository layout
+
+```
+src/                 four shipped files (config.ini, lang, svg, compose) - the only hand-written artefacts
+scripts/build.sh     build + self-verify one architecture
+scripts/build-dual.sh build both architectures, keep <appid>_<arch>.tar.gz assets
+test/install-and-verify.sh   on-device E2E (requires uid 0; do NOT run on a production NAS)
+PRIVACY.md           privacy policy, linked from the package Help field
+```
+
+## Privacy
+
+See [PRIVACY.md](PRIVACY.md). The package collects no telemetry; the only
+outbound requests are the feeds you subscribe to and optional features you
+enable. All application data stays in
+`/Volume1/DockerAppData/freshrssdocker/`.
