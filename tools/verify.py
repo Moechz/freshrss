@@ -82,6 +82,17 @@ for key in ("help", "official", "Official"):
         chk(v.startswith("https://github.com/"),
             f"{key} must be a github.com URL (the link checker performs an HTTP GET)")
 
+# ---- C5: the packaged Help link must open the privacy policy -----------------
+# The 1.30.4-3 submission was rejected on C5 again even though tosapp.json.help
+# had been fixed: build.sh copied src/config.ini verbatim, so the package still
+# shipped the old issue-tracker URL. The spec, the package and the repository
+# must agree, and the target must actually be the policy file.
+chk(cfg.get("help") == spec.get("help"),
+    f"config.ini help {cfg.get('help')!r} != tosapp.json help {spec.get('help')!r}")
+chk(str(cfg.get("help") or "").endswith("PRIVACY.md"),
+    "config.ini help must point at PRIVACY.md (C5: the privacy policy must be reachable)")
+chk((root / "PRIVACY.md").is_file(), "PRIVACY.md is missing from the repository root")
+
 # ---- lang -------------------------------------------------------------------
 lang = (stage / f"{appid}.lang").read_text(encoding="utf-8")
 chk("@@" not in lang, "lang still contains an unreplaced @@PLACEHOLDER@@")
@@ -99,6 +110,15 @@ for s in secs:
     i = re.search(r'important\s*=\s*"(.+)"', body)
     chk(i is None or len(i.group(1)) <= 512, f"[{s}] important longer than 512 chars")
     chk(f'version      = "{ver}"' in body, f"[{s}] version != {ver}")
+    # The store parser treats an ASCII ';' as an INI comment: the description is
+    # truncated and a stray quote appears (measured 2026-11-24, Home Assistant).
+    chk(";" not in body, f"[{s}] ASCII ';' is forbidden in .lang (store treats it as a comment)")
+    # A release note that still says "first release" on an iteration > 1 hides the
+    # remediation from the reviewer (it happened on 1.30.4-3).
+    note = re.search(r'release_note\s*=\s*"(.+)"', body)
+    if note and ver.rsplit("-", 1)[-1] != "1":
+        chk(ver.split("-")[0] in note.group(1) or ver in note.group(1),
+            f"[{s}] release_note does not mention {ver} (stale note)")
 chk(re.search(r"\bbeta\b", lang, re.I) is None, "lang must not contain the word 'beta' (V11)")
 
 # ---- svg icon ---------------------------------------------------------------
@@ -124,6 +144,13 @@ comp_nc = "\n".join(l for l in comp.splitlines() if not l.lstrip().startswith("#
 socket_ok = bool(spec.get("docker_socket"))
 for banned in ("privileged", "network_mode", "cap_add", "pid:", "ipc:"):
     chk(banned not in comp_nc, f"compose must not use {banned}")
+# Non-root hardening expected by the review (S1/S11): drop every capability and
+# forbid setuid binaries. The app only binds 8080 and writes its own volumes.
+chk(re.search(r"^\s+cap_drop:\s*$", comp_nc, re.M) is not None
+    and re.search(r"^\s+\-\s*ALL\s*$", comp_nc, re.M) is not None,
+    "compose must drop all capabilities (cap_drop: [ALL])")
+chk("no-new-privileges:true" in comp_nc or "no-new-privileges: true" in comp_nc,
+    "compose must set security_opt no-new-privileges:true")
 # The Docker socket is refused unless the spec carries the documented exception
 # (docker_socket: true + docker_socket_reason + group_add). Apps that *are* a
 # Docker control panel cannot work without it; everything else must not have it.
@@ -231,6 +258,12 @@ if mode == "wrapper":
         chk(embedded == source.replace("$", "$$"),
             "embedded entrypoint differs from src/entrypoint.sh")
         chk("set -u" in embedded, "entrypoint must keep 'set -u'")
+        # FreshRSS needs its data sub-directories (favicons, tokens, users, cache,
+        # PubSubHubbub). The official entrypoint creates them with cli/prepare.php;
+        # 1.30.4-3 skipped that, so the first-run page emitted touch() warnings and
+        # favicons/API tokens never worked (F5).
+        chk("prepare.php" in embedded,
+            "the wrapper must run cli/prepare.php to create the data directories")
 
 if errs:
     print("VERIFY FAIL:")

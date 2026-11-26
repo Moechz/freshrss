@@ -1,9 +1,25 @@
 #!/bin/sh
 # FreshRSS's official entrypoint needs root (timezone symlink, sed on /etc,
-# chown, Apache pid under /var/run). TOS forbids root containers, so run the
-# unmodified app with a private, writable copy of the Apache configuration as
-# uid 1000 on port 8080.
+# chown, Apache pid under /var/run, cron). TOS forbids root containers, so run
+# the unmodified app with a private, writable copy of the Apache configuration
+# as uid 1000 on port 8080, and perform the data-directory preparation the
+# official entrypoint does with `cli/prepare.php`.
 set -u
+
+cd /var/www/FreshRSS
+
+# The official entrypoint runs `./cli/prepare.php` before Apache (as root).
+# Skipping it leaves data/favicons, data/tokens, data/cache, data/PubSubHubbub
+# and data/users missing: the first-run page then emits "touch(): Unable to
+# create file ..." warnings, the web installer cannot create the administrator,
+# favicons are never cached and the API (token store) stays broken. The script
+# only creates directories and files owned by the application user, so uid 1000
+# can run it; a failure is loud in the container log but never blocks Apache.
+# (`cli/access-permissions.sh` is deliberately NOT called: it refuses to run
+# without root, and there is nothing to chown when we run as the data owner.)
+if ! php -f ./cli/prepare.php >/dev/null; then
+	echo "WARN: cli/prepare.php failed - data directories may be incomplete" >&2
+fi
 
 rm -rf /tmp/apache2
 mkdir -p /tmp/apache2

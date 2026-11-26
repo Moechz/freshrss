@@ -47,6 +47,13 @@ PY
 IMAGE=$(python3 -c "import json;print(json.load(open('tosapp.json'))['image'])")
 echo ">> packaging ${APPID} version ${VERSION} platform ${PLATFORM} (image ${IMAGE})"
 
+# --- generated files come from tosapp.json, never from a hand-edited copy ---
+# The 1.30.4-3 review failed again on C5 because tosapp.json.help pointed at
+# PRIVACY.md while the packaged config.ini still carried the old issue-tracker
+# URL (build.sh used to copy src/config.ini verbatim). Render the .lang here and
+# inject the link fields below, so the package can only ever carry the spec.
+python3 "$ROOT/scripts/render-lang.py" "$ROOT"
+
 # ------------------------------------------------------------------ stage ----
 rm -rf "$STAGE" "$OUT"
 mkdir -p "$STAGE" "$OUT"
@@ -55,14 +62,33 @@ for f in config.ini "$APPID.lang" "$APPID.svg" docker-compose.yml; do
 done
 
 python3 - "$SRC" "$STAGE" "$VERSION" "$PLATFORM" "$APPID" <<'PY'
-import pathlib, sys
+import json, pathlib, sys
 src, stage, ver, plat, appid = (pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]),
                                 sys.argv[3], sys.argv[4], sys.argv[5])
+spec = json.loads((src.parent / "tosapp.json").read_text(encoding="utf-8"))
 
 for name in ("config.ini", f"{appid}.lang"):
     p = stage / name
     data = p.read_text(encoding="utf-8").replace("@@VERSION@@", ver).replace("@@PLATFORM@@", plat)
     p.write_bytes(data.replace("\r\n", "\n").encode("utf-8"))
+
+# The package's link fields are the ones the store and the link checker read
+# (`help` is what C5 opens). They are taken from tosapp.json, so the spec and
+# the package cannot disagree again.
+cfg_path = stage / "config.ini"
+cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+for key, spec_key in (("help", "help"), ("official", "official"), ("Official", "official"),
+                      ("publisher", "publisher")):
+    if spec.get(spec_key):
+        cfg[key] = spec[spec_key]
+help_url = str(cfg.get("help") or "")
+if not help_url.startswith("https://github.com/") or not help_url.endswith("PRIVACY.md"):
+    sys.exit(f"FATAL: tosapp.json help must point at the public privacy policy "
+             f"(https://github.com/<owner>/<repo>/blob/<branch>/PRIVACY.md), got {help_url!r}")
+if not (src.parent / "PRIVACY.md").is_file():
+    sys.exit("FATAL: PRIVACY.md is missing from the repository root")
+cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+print(f"   staged links: help={cfg['help']} official={cfg.get('official')}")
 
 # The entrypoint wrapper (when the app uses one) is embedded into the compose
 # block scalar. docker compose interpolates $VAR/${VAR} in compose files, so

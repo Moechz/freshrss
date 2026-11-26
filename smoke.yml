@@ -1,0 +1,9 @@
+# Custom probes for ../../smoke.py (the isolated staging run).
+# "/" redirects to the first-run page, so its body is empty by design.
+checks:
+  - url: /
+    expect_status: [301, 302]
+  - url: /i/
+    expect_status: [200]
+    expect_body: FreshRSS
+    min_bytes: 1000
